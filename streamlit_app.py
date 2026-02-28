@@ -53,8 +53,16 @@ body { font-family: Georgia, serif; background-color: #F5F0FF; }
 """, unsafe_allow_html=True)
 
 st.title("💬 AI Ethics Educator")
-st.markdown("###This chatbot provides information grounded in UCSB policy, campus journalism, and peer-reviewed research to explore the question: **How is the rise of AI tools like ChatGPT reshaping academic integrity, learning practices, and ethical decision-making among students at UCSB?**###")
 
+st.markdown("### Grounded in UCSB policy, campus journalism, and peer-reviewed research.")
+
+st.markdown("---")
+
+st.markdown("## Research Question")
+st.markdown("""
+How is the rise of AI tools like ChatGPT reshaping academic integrity,
+learning practices, and ethical decision-making among students at UCSB?
+""")
 # -----------------------------
 # Start a new conversation button
 # -----------------------------
