@@ -1,15 +1,12 @@
 import streamlit as st
 from dotenv import load_dotenv
 import os
-from openai import OpenAI
 import json
-import faiss
-import pickle
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
 # -----------------------------
-# Load .env and API key
+# Load API key
 # -----------------------------
 load_dotenv()
 api_key = os.getenv("OPENROUTER_API_KEY")
@@ -17,16 +14,13 @@ if not api_key:
     st.error("Missing OPENROUTER_API_KEY in .env")
     st.stop()
 
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=api_key,
-)
+from openai import OpenAI
+client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
 
 # -----------------------------
 # Chat history
 # -----------------------------
 CHAT_FILE = "chat_history.json"
-
 if os.path.exists(CHAT_FILE):
     with open(CHAT_FILE, "r") as f:
         st.session_state.messages = json.load(f)
@@ -38,9 +32,9 @@ def save_messages():
         json.dump(st.session_state.messages, f)
 
 # -----------------------------
-# Page setup and CSS
+# UI
 # -----------------------------
-st.set_page_config(page_title="AI Ethics Guide", page_icon="🍀", layout="wide")
+st.set_page_config(page_title="AI Ethics Educator", page_icon="🍀", layout="wide")
 
 st.markdown("""
 <style>
@@ -50,7 +44,7 @@ body { font-family: Georgia, serif; background-color: #F5F0FF; }
 </style>
 """, unsafe_allow_html=True)
 
-st.title("💬 AI Ethics Chatbot")
+st.title("💬 AI Ethics Educator")
 st.markdown("Ask me anything about AI ethics. I’ll respond thoughtfully!")
 
 if st.button("✨ New Conversation"):
@@ -65,47 +59,46 @@ for msg in st.session_state.messages:
     st.markdown(f"<div class='{bubble_class}'>{msg['content']}</div>", unsafe_allow_html=True)
 
 # -----------------------------
-# Load embeddings & FAISS once
+# Load chunks + embeddings
 # -----------------------------
 @st.cache_resource
-def load_embedding_resources():
-    model = SentenceTransformer("all-MiniLM-L6-v2")
-    index = faiss.read_index("ethics_index.faiss") # make sure this file exists
+def load_embeddings():
+    # Your pre-saved chunks and metadata
+    import pickle
     with open("chunks.pkl", "rb") as f:
         chunks = pickle.load(f)
     with open("metadata.pkl", "rb") as f:
         metadata = pickle.load(f)
-    return model, index, chunks, metadata
+    model = SentenceTransformer("all-MiniLM-L6-v2")
+    embeddings = model.encode(chunks)
+    return chunks, metadata, model, embeddings
 
-embedding_model, index, chunks, metadata = load_embedding_resources()
+chunks, metadata, embedding_model, embeddings = load_embeddings()
 
 # -----------------------------
-# Retrieval function
+# Retrieval function (cosine similarity)
 # -----------------------------
-def retrieve_context(query, k=4):
-    query_embedding = embedding_model.encode([query])
-    distances, indices = index.search(np.array(query_embedding), k)
+def retrieve_context(query, top_k=4):
+    query_emb = embedding_model.encode([query])[0]
+    cos_sim = np.dot(embeddings, query_emb) / (np.linalg.norm(embeddings, axis=1) * np.linalg.norm(query_emb))
+    top_indices = np.argsort(-cos_sim)[:top_k]
     results = []
-    for idx in indices[0]:
+    for idx in top_indices:
+        chunk_text = chunks[idx][:1000]  # truncate for speed
         source = metadata[idx]
-        chunk_text = chunks[idx][:1000]  # truncate to 1000 chars for speed
         results.append(f"[Source: {source['title']} - {source['url']}]\n{chunk_text}")
     return "\n\n".join(results)
 
 # -----------------------------
-# Chat input & RAG response
+# Chat input
 # -----------------------------
 if prompt := st.chat_input("Type your question about AI ethics..."):
-
-    # Save user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     save_messages()
     st.markdown(f"<div class='user-bubble'>{prompt}</div>", unsafe_allow_html=True)
 
-    # Retrieve context
     retrieved_context = retrieve_context(prompt)
 
-    # Build system prompt
     system_prompt = f"""
 You are an AI Ethics research assistant grounded in UCSB policy,
 campus journalism, and peer-reviewed research.
@@ -117,24 +110,20 @@ Use the following sources when relevant:
 Cite the source title when using information.
 """
 
-    # Build conversation
     conversation = [{"role": "system", "content": system_prompt}]
     for msg in st.session_state.messages:
         conversation.append({"role": msg["role"], "content": msg["content"]})
 
-    # Call OpenRouter
     try:
         response = client.chat.completions.create(
             model="arcee-ai/trinity-large-preview:free",
             messages=conversation,
             extra_body={"reasoning": {"enabled": True}}
         )
-        assistant_msg = response.choices[0].message
-        reply_text = assistant_msg.content
+        reply_text = response.choices[0].message.content
     except Exception as e:
         reply_text = f"❌ API request failed: {e}"
 
-    # Save and display assistant reply
     st.session_state.messages.append({"role": "assistant", "content": reply_text})
     save_messages()
     st.markdown(f"<div class='assistant-bubble'>{reply_text}</div>", unsafe_allow_html=True)

@@ -7,13 +7,14 @@ python-dotenv==1.2.1
 # OpenAI client for OpenRouter API
 openai==2.24.0
 
-# HTTP requests library (optional, useful for direct API calls)
+# HTTP requests library
 requests==2.32.5
 
-faiss-cpu==1.7.4
-sentence-transformers
-numpy
-streamlit
-openai
-requests
-beautifulsoup4
+# Web scraping
+beautifulsoup4==4.12.2
+
+# NLP embeddings
+sentence-transformers==2.2.2
+
+# Numeric operations
+numpy==1.26.2
