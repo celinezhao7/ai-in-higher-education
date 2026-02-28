@@ -23,7 +23,7 @@ sources = [
     },
     {
         "title": "Bond et al. 2024",
-        "url": "https://link.springer.com/article/10.1186/s41239-023-00436-z"
+        "url": "https://research.ebsco.com/c/fml6nw/viewer/pdf/puh37vw5pf?route=details"
     },
     {
         "title": "Kosmyna et al. 2025",
