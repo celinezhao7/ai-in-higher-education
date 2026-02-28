@@ -70,7 +70,7 @@ for msg in st.session_state.messages:
 @st.cache_resource
 def load_embedding_resources():
     model = SentenceTransformer("all-MiniLM-L6-v2")
-    index = faiss.read_index("knowledge_base.faiss")  # make sure this file exists
+    index = faiss.read_index("ethics_index.faiss") # make sure this file exists
     with open("chunks.pkl", "rb") as f:
         chunks = pickle.load(f)
     with open("metadata.pkl", "rb") as f:
