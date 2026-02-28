@@ -90,3 +90,20 @@ with open("metadata.pkl", "wb") as f:
     pickle.dump(metadata, f)
 
 print("Knowledge base ready!")
+
+# ----------------------------
+# 5. EMBEDDINGS
+# ----------------------------
+from sentence_transformers import SentenceTransformer
+import numpy as np
+import pickle
+
+print("Generating embeddings...")
+model = SentenceTransformer("all-MiniLM-L6-v2")
+embeddings = model.encode(all_chunks, show_progress_bar=True)
+
+# Save embeddings
+with open("embeddings.pkl", "wb") as f:
+    pickle.dump(embeddings, f)
+
+print("Embeddings saved to embeddings.pkl")
