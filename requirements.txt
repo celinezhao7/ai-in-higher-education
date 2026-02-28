@@ -1,11 +1,11 @@
-streamlit
-python-dotenv
-# The Google generative AI SDK is not consistently published under a
-# single package name on PyPI. Do NOT include a package name here to
-# avoid install-time failures.
-# To enable the generative AI functionality, install the provider SDK
-# manually. Common options include:
-#   pip install google-generative-ai
-#   pip install google-generativeai
-# If your environment doesn't have a published package, follow the
-# provider's install instructions.
+# Streamlit for the web app
+streamlit==1.54.0
+
+# Load environment variables from .env
+python-dotenv==1.2.1
+
+# OpenAI client for OpenRouter API
+openai==2.24.0
+
+# HTTP requests library (optional, useful for direct API calls)
+requests==2.32.5
