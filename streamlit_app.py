@@ -3,12 +3,10 @@ from dotenv import load_dotenv
 import os
 from openai import OpenAI
 import json
-import pickle
-import numpy as np
-from sentence_transformers import SentenceTransformer
+import uuid
 
 # -----------------------------
-# Load .env and API key
+# Load API key
 # -----------------------------
 load_dotenv()
 api_key = os.getenv("OPENROUTER_API_KEY")
@@ -22,10 +20,15 @@ client = OpenAI(
 )
 
 # -----------------------------
-# Chat history
+# Assign a unique session ID for each user
 # -----------------------------
-CHAT_FILE = "chat_history.json"
+if "user_id" not in st.session_state:
+    st.session_state.user_id = str(uuid.uuid4())
 
+# Each user gets their own chat history file (optional persistent storage)
+CHAT_FILE = f"chat_{st.session_state.user_id}.json"
+
+# Load chat history for this user (if exists)
 if os.path.exists(CHAT_FILE):
     with open(CHAT_FILE, "r") as f:
         st.session_state.messages = json.load(f)
@@ -37,7 +40,7 @@ def save_messages():
         json.dump(st.session_state.messages, f)
 
 # -----------------------------
-# Page setup & CSS
+# Streamlit UI
 # -----------------------------
 st.set_page_config(page_title="AI Ethics Educator", page_icon="🍀", layout="wide")
 
@@ -52,82 +55,37 @@ body { font-family: Georgia, serif; background-color: #F5F0FF; }
 st.title("💬 AI Ethics Educator")
 st.markdown("Ask me anything about AI ethics. I’ll respond thoughtfully!")
 
+# -----------------------------
+# Start a new conversation button
+# -----------------------------
 if st.button("✨ New Conversation"):
     st.session_state.messages = []
     if os.path.exists(CHAT_FILE):
         os.remove(CHAT_FILE)
     st.success("Started a new conversation!")
 
+# -----------------------------
 # Display chat history
+# -----------------------------
 for msg in st.session_state.messages:
     bubble_class = "user-bubble" if msg["role"] == "user" else "assistant-bubble"
     st.markdown(f"<div class='{bubble_class}'>{msg['content']}</div>", unsafe_allow_html=True)
 
 # -----------------------------
-# Load embeddings + chunks once
-# -----------------------------
-@st.cache_resource
-def load_knowledge_base():
-    with open("chunks.pkl", "rb") as f:
-        chunks = pickle.load(f)
-    with open("metadata.pkl", "rb") as f:
-        metadata = pickle.load(f)
-    with open("embeddings.pkl", "rb") as f:
-        embeddings = pickle.load(f)
-    embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-    return chunks, metadata, embeddings, embedding_model
-
-chunks, metadata, embeddings, embedding_model = load_knowledge_base()
-
-# -----------------------------
-# Cosine similarity retrieval
-# -----------------------------
-def retrieve_context(query, top_k=4):
-    query_emb = embedding_model.encode([query])[0]
-    # Normalize embeddings
-    query_emb = query_emb / np.linalg.norm(query_emb)
-    norm_embeddings = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
-    sims = np.dot(norm_embeddings, query_emb)
-    top_indices = sims.argsort()[-top_k:][::-1]
-
-    results = []
-    for idx in top_indices:
-        source = metadata[idx]
-        chunk_text = chunks[idx][:1000]  # truncate to 1000 chars
-        results.append(f"[Source: {source['title']} - {source['url']}]\n{chunk_text}")
-    return "\n\n".join(results)
-
-# -----------------------------
-# Chat input & RAG response
+# Chat input
 # -----------------------------
 if prompt := st.chat_input("Type your question about AI ethics..."):
-
-    # Save user message
+    # Save user message in their session
     st.session_state.messages.append({"role": "user", "content": prompt})
     save_messages()
     st.markdown(f"<div class='user-bubble'>{prompt}</div>", unsafe_allow_html=True)
 
-    # Retrieve context
-    retrieved_context = retrieve_context(prompt)
-
-    # Build system prompt
-    system_prompt = f"""
-You are an AI Ethics research assistant grounded in UCSB policy,
-campus journalism, and peer-reviewed research.
-
-Use the following sources when relevant:
-
-{retrieved_context}
-
-Cite the source title when using information.
-"""
-
-    # Build conversation
-    conversation = [{"role": "system", "content": system_prompt}]
+    # Build conversation with system prompt (you can add RAG info here)
+    conversation = [{"role": "system", "content": "You are an AI Ethics research assistant."}]
     for msg in st.session_state.messages:
         conversation.append({"role": msg["role"], "content": msg["content"]})
 
-    # Call OpenRouter model
+    # Call OpenRouter
     try:
         response = client.chat.completions.create(
             model="arcee-ai/trinity-large-preview:free",
@@ -139,7 +97,7 @@ Cite the source title when using information.
     except Exception as e:
         reply_text = f"❌ API request failed: {e}"
 
-    # Save and display assistant reply
+    # Save assistant reply
     st.session_state.messages.append({"role": "assistant", "content": reply_text})
     save_messages()
     st.markdown(f"<div class='assistant-bubble'>{reply_text}</div>", unsafe_allow_html=True)
