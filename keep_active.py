@@ -7,4 +7,4 @@ while True:
         print("Ping sent.")
     except Exception as e:
         print(f"Error: {e}")
-    time.sleep(36000)  # 10 hours
+    time.sleep(600)  # 10 minutes
