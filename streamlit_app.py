@@ -48,7 +48,36 @@ def load_knowledge_base():
 
 chunks, metadata, embeddings, embedding_model = load_knowledge_base()
 
+# -----------------------------
+# Retrieve relevant RAG sources
+# -----------------------------
+def retrieve_relevant_chunks(question, k=3):
+    # Turn the user's question into an embedding
+    question_embedding = embedding_model.encode(question)
 
+    # Calculate cosine similarity between the question and every saved chunk
+    question_norm = np.linalg.norm(question_embedding) + 1e-10
+    chunk_norms = np.linalg.norm(embeddings, axis=1) + 1e-10
+
+    similarity_scores = (embeddings @ question_embedding) / (
+        chunk_norms * question_norm
+    )
+
+    # Find the indices of the top-k most relevant chunks
+    top_indices = np.argsort(similarity_scores)[-k:][::-1]
+
+    # Format them as reference material for the AI
+    results = []
+    for i in top_indices:
+        results.append(
+            f"[Source: {metadata[i]['title']}]\n"
+            f"URL: {metadata[i]['url']}\n"
+            f"{chunks[i]}"
+        )
+
+    return "\n\n---\n\n".join(results)
+
+    
 # -----------------------------
 # Assign a unique session ID for each user
 # -----------------------------
