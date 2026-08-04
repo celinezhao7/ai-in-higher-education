@@ -10,7 +10,7 @@ import uuid
 # -----------------------------
 load_dotenv()
 api_key = os.getenv("OPENROUTER_API_KEY")
-if not api_key:
+if not api_key:a
     st.error("Missing OPENROUTER_API_KEY in .env")
     st.stop()
 
@@ -96,7 +96,7 @@ if prompt := st.chat_input("Type your question about AI ethics..."):
     # Call OpenRouter
     try:
         response = client.chat.completions.create(
-            model="arcee-ai/trinity-large-preview:free",
+            model="nvidia/nemotron-3-ultra-550b-a55b:free",
             messages=conversation,
             extra_body={"reasoning": {"enabled": True}}
         )
