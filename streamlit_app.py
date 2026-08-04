@@ -147,8 +147,27 @@ if prompt := st.chat_input("Type your question about AI ethics..."):
     save_messages()
     st.markdown(f"<div class='user-bubble'>{prompt}</div>", unsafe_allow_html=True)
 
-    # Build conversation with system prompt (you can add RAG info here)
-    conversation = [{"role": "system", "content": "You are an AI Ethics research assistant."}]
+    # Retrieve the most relevant UCSB research chunks for this question
+    retrieved_context = retrieve_relevant_chunks(prompt, k=3)
+
+    # Temporary display: proves which RAG sources were found
+    with st.expander("Sources retrieved for this answer"):
+        st.write(retrieved_context)
+
+    conversation = [{
+        "role": "system",
+        "content": f"""You are an AI Ethics research assistant.
+
+Answer clearly and concisely, using the retrieved source material below.
+Do not invent UCSB-specific facts that are not supported by these sources.
+If the sources do not contain enough information, say that clearly.
+Mention the source title when making a factual claim.
+
+RETRIEVED SOURCE MATERIAL:
+{retrieved_context}
+"""
+    }]
+
     for msg in st.session_state.messages:
         conversation.append({"role": msg["role"], "content": msg["content"]})
 
