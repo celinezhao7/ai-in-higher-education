@@ -4,6 +4,10 @@ import os
 from openai import OpenAI
 import json
 import uuid
+import pickle
+import numpy as np
+from pathlib import Path
+from sentence_transformers import SentenceTransformer
 
 # -----------------------------
 # Load API key
@@ -20,6 +24,30 @@ client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=api_key,
 )
+
+# -----------------------------
+# Load RAG knowledge base
+# -----------------------------
+BASE_DIR = Path(__file__).parent
+
+@st.cache_resource
+def load_knowledge_base():
+    with open(BASE_DIR / "chunks.pkl", "rb") as f:
+        chunks = pickle.load(f)
+
+    with open(BASE_DIR / "metadata.pkl", "rb") as f:
+        metadata = pickle.load(f)
+
+    with open(BASE_DIR / "embeddings.pkl", "rb") as f:
+        embeddings = np.array(pickle.load(f))
+
+    embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+
+    return chunks, metadata, embeddings, embedding_model
+
+
+chunks, metadata, embeddings, embedding_model = load_knowledge_base()
+
 
 # -----------------------------
 # Assign a unique session ID for each user
