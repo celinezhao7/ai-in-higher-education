@@ -9,11 +9,13 @@ import uuid
 # Load API key
 # -----------------------------
 load_dotenv()
+
 api_key = os.getenv("OPENROUTER_API_KEY")
-if not api_key:a
+
+if not api_key:
     st.error("Missing OPENROUTER_API_KEY in .env")
     st.stop()
-
+    
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=api_key,
